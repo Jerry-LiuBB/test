@@ -1,0 +1,4 @@
+# No mandatory dependencies for mock end-to-end run.
+# Optional for real hardware capture:
+# pyrealsense2
+# numpy
