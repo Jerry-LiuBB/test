@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import json
 from pathlib import Path
 from typing import Dict, Iterable, List
 
@@ -10,6 +11,14 @@ from dataio.pose_io import append_pose_row
 from robot.driver import RobotDriverBase
 
 
+def _write_trigger_file(trigger_path: Path, payload: Dict) -> None:
+    """Atomically write trigger payload for downstream consumers."""
+    trigger_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = trigger_path.with_suffix(trigger_path.suffix + ".tmp")
+    temp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    temp_path.replace(trigger_path)
+
+
 def execute_scan(
     robot: RobotDriverBase,
     camera: RealSenseOrMockCamera,
@@ -17,6 +26,7 @@ def execute_scan(
     out_dir: Path,
     speed: float = 0.05,
     settle_frames: int = 3,
+    trigger_path: Path | None = None,
 ) -> List[Dict]:
     out_dir.mkdir(parents=True, exist_ok=True)
     rgb_dir = out_dir / "rgb"
@@ -59,5 +69,16 @@ def execute_scan(
         }
         append_pose_row(txt_path, row)
         records.append(row)
+
+    if trigger_path is not None:
+        payload = {
+            "event": "scan_completed",
+            "timestamp": datetime.now().isoformat(timespec="milliseconds"),
+            "out_dir": str(out_dir.resolve()),
+            "poses_file": str(txt_path.resolve()),
+            "records": len(records),
+            "status": "ok",
+        }
+        _write_trigger_file(trigger_path, payload)
 
     return records
