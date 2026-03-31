@@ -15,7 +15,13 @@ class CameraFrame:
 class RealSenseOrMockCamera:
     """Uses RealSense if available; otherwise generates synthetic frames."""
 
-    def __init__(self, width: int = 640, height: int = 480, fps: int = 30):
+    def __init__(
+        self,
+        width: int = 640,
+        height: int = 480,
+        fps: int = 30,
+        serial_number: str = "",
+    ):
         self.width = width
         self.height = height
         self.fps = fps
@@ -30,6 +36,8 @@ class RealSenseOrMockCamera:
             self.np = np
             self.pipeline = rs.pipeline()
             cfg = rs.config()
+            if serial_number:
+                cfg.enable_device(serial_number)
             cfg.enable_stream(rs.stream.color, width, height, rs.format.rgb8, fps)
             cfg.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
             self.pipeline.start(cfg)
